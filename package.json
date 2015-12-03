@@ -1,0 +1,18 @@
+{
+  "name": "jade-to-jsx",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "bin": "bin.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "falafel": "^1.2.0",
+    "html": "0.0.10",
+    "htmltojsx": "^0.2.5",
+    "jade": "^1.11.0"
+  }
+}
