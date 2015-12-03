@@ -1,6 +1,6 @@
 {
   "name": "jade-to-jsx",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "index.js",
   "bin": "bin.js",
@@ -10,9 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "change-case": "^2.3.0",
     "falafel": "^1.2.0",
     "html": "0.0.10",
     "htmltojsx": "^0.2.5",
-    "jade": "^1.11.0"
+    "jade": "^1.11.0",
+    "nopt": "^3.0.6"
   }
 }

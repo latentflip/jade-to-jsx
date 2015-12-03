@@ -51,6 +51,45 @@ export default React.createClass({
 });
 ```
 
+#### Replacing includes
+
+You can replace includes with components like so:
+
+```shell
+jade-to-jsx test.jade -r ./bar.jade -w ./Bar > Test.js
+```
+
+* `-r` path to actually included jade file
+* `-w` path that should be imported in the react component file
+
+results in:
+
+```js
+import React from 'React';
+import bar from './Bar';
+
+export default React.createClass({
+  propTypes: {
+    bar: React.PropTypes.any,
+    foo: React.PropTypes.any
+  },
+  render() {
+    let { bar, foo } = this.props;
+
+    return (
+      <div>
+        <h1>Hello</h1>
+        <p>{foo}</p>
+        <p>{foo*2}</p>
+        <p>{bar.baz}</p>
+        <Bar />
+      </div>
+    );
+  }
+});
+```
+
+
 ### Contributing
 
 Umm, sorry about the code? Very messy hack rn.

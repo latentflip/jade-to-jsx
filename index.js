@@ -1,9 +1,12 @@
 var Jade = require('jade');
 var Fs = require('fs');
+var Path = require('path');
 var localsRegex = /\(function \(([^)]*)\)/;
 var falafel = require('falafel');
 var HTMLtoJSX = require('htmltojsx');
 var HtmlPrettifier = require('html').prettyPrint;
+var pascalCase = require('change-case').pascalCase;
+var snakeCase = require('change-case').snakeCase;
 
 var converter = new HTMLtoJSX({
   createClass: true,
@@ -58,8 +61,22 @@ function makePropTypes(props) {
   return str.join('\n');
 }
 
-function rewriteClass(jsx, props) {
-  jsx = 'import React from \'React\';\n\n' + jsx;
+function makeImports(replacements) {
+  if (Object.keys(replacements).length === 0) { return '\n'; }
+
+  return Object.keys(replacements).map(function (key) {
+    return 'import ' + key + ' from \'' + replacements[key] + '\';';
+  }).join('\n') + '\n\n';
+}
+
+function fixJsxImports(jsx) {
+  return jsx.replace(/jsx:(\w+)/g, function (_, match) {
+    return pascalCase(match);
+  });
+}
+
+function rewriteClass(jsx, props, replacements) {
+  jsx = 'import React from \'React\';\n' + makeImports(replacements) + jsx;
   jsx = jsx.replace('React.createClass', 'export default React.createClass');
   jsx = jsx.replace(/: function\(/g, '(');
   if (props.length > 0) {
@@ -74,6 +91,7 @@ function rewriteClass(jsx, props) {
             makePropTypes(props)
     );
   }
+  jsx = fixJsxImports(jsx);
   jsx = stripEmptyLineAfterRenderReturn(jsx);
   return jsx;
 }
@@ -95,9 +113,47 @@ function findProps(source) {
   return Object.keys(props);
 }
 
+function buildReplacements(tmpl, filename, replacements) {
+  var matchedReplacements = {};
+
+  lines = tmpl.split('\n');
+  lines = lines.map(function (line) {
+    var match = line.match(/^(\s*)include\s+('|")?([^'"]*)('|")?$/);
+    if (!match) return line;
+
+    var f = match[3];
+    if (!f.match(/\.jade$/)) f += '.jade';
+    f = Path.join(Path.dirname(filename), f);
+
+    if (replacements[f]) {
+      var className = snakeCase(Path.basename(replacements[f], '.js'));
+      matchedReplacements[className] = replacements[f];
+      return (match[1] || '') + '<jsx:' + className + ' ></jsx:' + className + '>';
+    } else {
+      return line;
+    }
+  });
+
+  return {
+    replacements: matchedReplacements,
+    template: lines.join('\n')
+  };
+}
+
+
 module.exports = function (options) {
   options.inlineRuntimeFunctions = true;
-  var res = Jade.compileClient(Fs.readFileSync(options.filename), options);
+  options.pretty = true;
+  var template = Fs.readFileSync(options.filename).toString();
+  var replacements = {};
+
+  if (options.replacements || true) {
+    var built = buildReplacements(template, options.filename, options.replacements);
+    template = built.template;
+    replacements = built.replacements;
+  }
+
+  var res = Jade.compileClient(template, options);
   var props = {};
 
   var output = falafel(res, function (node) {
@@ -123,6 +179,6 @@ module.exports = function (options) {
   var html = eval(output + '\n template({})');
   html = HtmlPrettifier(html);
   var jsx = converter.convert(html);
-  jsx = rewriteClass(jsx, Object.keys(props).sort());
+  jsx = rewriteClass(jsx, Object.keys(props).sort(), replacements);
   return jsx;
 }
