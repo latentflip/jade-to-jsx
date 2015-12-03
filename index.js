@@ -76,7 +76,7 @@ function fixJsxImports(jsx) {
 }
 
 function rewriteClass(jsx, props, replacements) {
-  jsx = 'import React from \'React\';\n' + makeImports(replacements) + jsx;
+  jsx = 'import React from \'react\';\n' + makeImports(replacements) + jsx;
   jsx = jsx.replace('React.createClass', 'export default React.createClass');
   jsx = jsx.replace(/: function\(/g, '(');
   if (props.length > 0) {
