@@ -65,7 +65,7 @@ function makeImports(replacements) {
   if (Object.keys(replacements).length === 0) { return '\n'; }
 
   return Object.keys(replacements).map(function (key) {
-    return 'import ' + key + ' from \'' + replacements[key] + '\';';
+    return 'import ' + pascalCase(key) + ' from \'' + replacements[key] + '\';';
   }).join('\n') + '\n\n';
 }
 
@@ -73,6 +73,11 @@ function fixJsxImports(jsx) {
   return jsx.replace(/jsx:(\w+)/g, function (_, match) {
     return pascalCase(match);
   });
+}
+
+function fixJsxCurlies(jsx) {
+  return jsx.replace(/"\[\[{/g, '{').replace(/}\]\]"/g, '}');
+
 }
 
 function rewriteClass(jsx, props, replacements) {
@@ -92,6 +97,7 @@ function rewriteClass(jsx, props, replacements) {
     );
   }
   jsx = fixJsxImports(jsx);
+  jsx = fixJsxCurlies(jsx);
   jsx = stripEmptyLineAfterRenderReturn(jsx);
   return jsx;
 }
@@ -174,6 +180,30 @@ module.exports = function (options) {
 
         node.update('"{' + id.replace(/\"/g, '\\\"') + '}"');
       }
+
+      if (node.callee.object.name === 'jade' && node.callee.property.name === 'attr') {
+        var attrNode = node.arguments[0];
+        var valNode = node.arguments[1];
+        var val, attr;
+
+        if (!attrNode.type === 'Literal') {
+          console.dir(node);
+          throw new Error('Cannot handle jade.attr');
+        }
+
+        attr = attrNode.value;
+
+        if (valNode.type === 'Literal') {
+          val = valNode.raw;
+        } else {
+          val = valNode.source();
+          findProps(val).forEach(function (p) {
+            props[p] = true;
+          });
+        }
+
+        node.update('" ' + attr + '=\\"[[{' + val.replace(/\"/g, '\\\"').replace(/\'/g, "\\\'") + '}]]\\""');
+      }
     }
   });
   var html = eval(output + '\n template({})');
@@ -182,3 +212,4 @@ module.exports = function (options) {
   jsx = rewriteClass(jsx, Object.keys(props).sort(), replacements);
   return jsx;
 }
+

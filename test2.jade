@@ -1,0 +1,7 @@
+tr.link-list-item
+  td: h4.list-group-item-heading(data-hook='name')
+  td: a(href='#', data-hook='uri', target='_blank')
+  td(data-hook='rel')
+  td
+    a(data-hook='list-item-edit', href='/links/' + model.id + '/edit')
+      span.pnnl-icon-edit
